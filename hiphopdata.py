@@ -12,249 +12,144 @@ FILE_HIPHOP_ARTISTS = 'wiki_hiphop_artists_and_groups.csv'
 #created files
 FILE_BILLBOARD_ISHIPHOP = 'billboard_hot100_all_genres_ishiphop.csv'
 FILE_BILLBOARD_HIPHOP = 'billboard_hiphop.csv'
+FILE_BILLBOARD_HIPHOP_SPOTIFY = 'billboard_hiphop_spotify.csv'
+FILE_BILLBOARD_HIPHOP_SPOTIFY_COMPLETE = 'billboard_hiphop_spotify_complete.csv'
 
-FILE_READ = 'mega_0517_inprogress_with_artists.csv'
-FILE_WRITE = 'mega_0517_inprogress_with_albums.csv'
+TRACK_FIELDS = [
+    'id',
+    'embed',
+    'url',
+    'isrc',
+    # 'ean',
+    # 'upc',
+    'name',
+    'popularity',
+    'duration_ms',
+    'explicit',
+    'number',
+    'uri',
+]
+ARTIST_FIELDS = [
+    'url',
+    'followers',
+    'genres',
+    'id',
+    'image_url',
+    'name',
+    'popularity',
+]
+ALBUM_FIELDS = [
+    'name',
+    'release_date',
+    'total_tracks',
+    'image',
+    'uri',
+    'type',
+    'url',
+    # 'isrc',
+    # 'ean',
+    'upc',
+    # 'genres',
+    'label',
+    'popularity',
+]
+AUDIO_FIELDS = [
+    'acousticness', 
+    'danceability',
+    'energy',
+    'instrumentalness',
+    'key',
+    'liveness',
+    'loudness',
+    'mode',
+    'speechiness',
+    'tempo',
+    'time_signature',
+    'valence',
+]
 
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope="user-library-read"))
 
-"""
-uncomment whichever you want to run 
-"""
+
 def main():
-    billboard_filter_hiphop(make_file_ishiphop=False, make_file_billboardhiphop=False)
-    # add_spotify_api_to_billboard_data
-    # add_extra_spotify_fields2()
-    # add_track_spotify_fields()
-    # add_artists_spotify_fields()
-    # add_album_spotify_fields()
+
+    billboard_filter_hiphop(
+        make_file_ishiphop=False, 
+        make_file_billboardhiphop=False)
+    
+    match_billboard_to_spotify_song(
+        FILE_BILLBOARD_HIPHOP, 
+        FILE_BILLBOARD_HIPHOP_SPOTIFY)
+    
+    add_spotify_fields(
+        FILE_BILLBOARD_HIPHOP_SPOTIFY, 
+        FILE_BILLBOARD_HIPHOP_SPOTIFY_COMPLETE, 
+        track_fields=TRACK_FIELDS, 
+        artist_fields=ARTIST_FIELDS, 
+        album_fields=ALBUM_FIELDS, 
+        audio_fields=AUDIO_FIELDS)
+    
     return
 
 
-def add_extra_spotify_fields():
+"""
 
-    df = pandas.read_csv(FILE_READ)
 
-    df['spotify_track_acousticness'] = ''
-    df['spotify_track_danceability'] = ''
-    df['spotify_track_energy'] = ''
-    df['spotify_track_instrumentalness'] = ''
-    df['spotify_track_key'] = ''
-    df['spotify_track_liveness'] = ''
-    df['spotify_track_loudness'] = ''
-    df['spotify_track_mode'] = ''
-    df['spotify_track_speechiness'] = ''
-    df['spotify_track_tempo'] = ''
-    df['spotify_track_time_signature'] = ''
-    df['spotify_track_valence'] = ''
+"""
+def add_spotify_fields(file_read, file_write, track_fields=[], artist_fields=[], album_fields=[], audio_fields=[]):
 
+    df = pandas.read_csv(file_read)
+
+    # create necessary columns, if don't already exist
+    for field in track_fields: 
+        if (field not in df): 
+            df['spotify_track_'+field] = ''
     
-    try:
-
-        last_track_uri = ''
-        all_track_uris = []
-
-        # for each entry in the billboard top 100 
-        for index, row in df.iterrows():
-
-            # if (index > 50):
-            #     break
-            
-            # if (index % 1000 == 0):
-            #     print("at index: "+str(index))
-
-            track_uri = row['spotify_track_uri']
-
-            # if there is already a spotify match because columns are not empty, continue to next row 
-            # if (not pandas.isna(row['spotify_track_uri'])):
-            #     # print("completed: "+str(index)+" "+str(row['spotify_track_name']))
-            #     continue
-            # else: 
-            #     print("no data yet: "+str(index)+" "+str(row['spotify_album_uri']))
-
-            # if has the same content as last row, don't redo search 
-            if (track_uri != last_track_uri): # no redundant call if same as previous song and performer
-                all_track_uris.append(track_uri)
-
-
-            last_track_uri = track_uri
-
-        # print(all_track_uris)
-        print('starting api call')
-        # all_track_audio_features = sp.audio_features(all_track_uris)
-        # print('completed api call')
-        # print(all_track_audio_features)
-        csv_index = 0
-
-        for i_100s in range(0, len(all_track_uris), 100):
-
-                
-
-            all_track_audio_features = sp.audio_features(all_track_uris)
-
-            for i in range(i_100s):
-
-                if (i % 1000 == 0):
-                    print("at index: "+str(i))
-                
-                df.loc[[3]]
-
-                d = all_track_audio_features[i]
-
-                # if there are search results, iterate through them 
-                if (d):
-
-                    df.loc[i, 'spotify_track_acousticness'] = d.get('acousticness')
-                    df.loc[i, 'spotify_track_danceability'] = d.get('danceability')
-                    df.loc[i, 'spotify_track_energy'] = d.get('energy')
-                    df.loc[i, 'spotify_track_instrumentalness'] = d.get('instrumentalness')
-                    df.loc[i, 'spotify_track_key'] = d.get('key')
-                    df.loc[i, 'spotify_track_liveness'] = d.get('liveness')
-                    df.loc[i, 'spotify_track_loudness'] = d.get('loudness')
-                    df.loc[i, 'spotify_track_mode'] = d.get('mode')
-                    df.loc[i, 'spotify_track_speechiness'] = d.get('speechiness')
-                    df.loc[i, 'spotify_track_tempo'] = d.get('tempo')
-                    df.loc[i, 'spotify_track_time_signature'] = d.get('time_signature')
-                    df.loc[i, 'spotify_track_valence'] = d.get('valence')
-               
-            # last_track_uri = track_uri
-
-    except KeyboardInterrupt as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(index)
-
-    except ValueError as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(index)
-
-    df.to_csv(FILE_WRITE)
-
-
-def add_extra_spotify_fields2():
-
-    df = pandas.read_csv(FILE_READ)
-
-#    df['spotify_track_acousticness'] = ''
-#    df['spotify_track_danceability'] = ''
-#    df['spotify_track_energy'] = ''
-#    df['spotify_track_instrumentalness'] = ''
-#    df['spotify_track_key'] = ''
-#    df['spotify_track_liveness'] = ''
-#    df['spotify_track_loudness'] = ''
-#    df['spotify_track_mode'] = ''
-#    df['spotify_track_speechiness'] = ''
-#    df['spotify_track_tempo'] = ''
-#    df['spotify_track_time_signature'] = ''
-#    df['spotify_track_valence'] = ''
-    # df['spotify_track_embed'] = ''
-    # df['spotify_track_id'] = ''
-    # df['spotify_track_url'] = ''
-    # df['spotify_track_isrc'] = ''
-    # df['spotify_track_ean'] = ''
-    # df['spotify_track_upc'] = ''
+    for field in audio_fields: 
+        if (field not in df): 
+            df['spotify_track_'+field] = ''
     
-    # df['spotify_album_type'] = ''
-    # df['spotify_album_url'] = ''
-    # df['spotify_album_isrc'] = ''
-    # df['spotify_album_ean'] = ''
-    # df['spotify_album_upc'] = ''
-    # df['spotify_album_genres'] = ''
-    # df['spotify_album_label'] = ''
-    # df['spotify_album_popularity'] = ''
+    for field in album_fields: 
+        if (field not in df): 
+            df['spotify_album_'+field] = ''
 
-    # df['spotify_track_artist1_followers'] = ''
-    # df['spotify_track_artist1_genres'] = ''
-    # df['spotify_track_artist1_url'] = ''
-    # df['spotify_track_artist1_id'] = ''
-    # df['spotify_track_artist1_image_url'] = ''
-    # df['spotify_track_artist1_name'] = ''
-    # df['spotify_track_artist1_popularity'] = ''
-
-    # df['spotify_track_artist2_followers'] = ''
-    # df['spotify_track_artist2_genres'] = ''
-    # df['spotify_track_artist2_url'] = ''
-    # df['spotify_track_artist2_id'] = ''
-    # df['spotify_track_artist2_image_url'] = ''
-    # df['spotify_track_artist2_name'] = ''
-    # df['spotify_track_artist2_popularity'] = ''
-
-
-    # df['spotify_track_artist3_followers'] = ''
-    # df['spotify_track_artist3_genres'] = ''
-    # df['spotify_track_artist3_url'] = ''
-    # df['spotify_track_artist3_id'] = ''
-    # df['spotify_track_artist3_image_url'] = ''
-    # df['spotify_track_artist3_name'] = ''
-    # df['spotify_track_artist3_popularity'] = ''
-
-
-    # df['spotify_track_artist4_followers'] = ''
-    # df['spotify_track_artist4_genres'] = ''
-    # df['spotify_track_artist4_url'] = ''
-    # df['spotify_track_artist4_id'] = ''
-    # df['spotify_track_artist4_image_url'] = ''
-    # df['spotify_track_artist4_name'] = ''
-    # df['spotify_track_artist4_popularity'] = ''
-
-
-    # df['spotify_track_artist5_followers'] = ''
-    # df['spotify_track_artist5_genres'] = ''
-    # df['spotify_track_artist5_url'] = ''
-    # df['spotify_track_artist5_id'] = ''
-    # df['spotify_track_artist5_image_url'] = ''
-    # df['spotify_track_artist5_name'] = ''
-    # df['spotify_track_artist5_popularity'] = ''
-
-
-    # df['spotify_track_artist6_followers'] = ''
-    # df['spotify_track_artist6_genres'] = ''
-    # df['spotify_track_artist6_url'] = ''
-    # df['spotify_track_artist6_id'] = ''
-    # df['spotify_track_artist6_image_url'] = ''
-    # df['spotify_track_artist6_name'] = ''
-    # df['spotify_track_artist6_popularity'] = ''
-
+    for i in range(1, 7):
+        for field in artist_fields: 
+            if (field not in df): 
+                df['spotify_track_artist'+str(i)+'_'+field] = ''
 
     last_track_uri = ''
+    all_artists = {}
     d = None
 
     try:
 
         # for each entry in the billboard top 100 
         for i, row in df.iterrows():
-        
-            if (i>100):
-                break
             
             if (i % 1000 == 0):
                 print("at index: "+str(i))
 
             # if there is no spotify track info, continue to next row 
-            if (pandas.isna(row['spotify_track_uri'])):
+            if (pandas.isna(row['spotify_track_id'])):
                 continue
-
-            # track_uri = row['spotify_track_uri']
-            album_uri = row['spotify_album_uri']
+            # if there is album id already filled in, 
+            # if (pandas.notna(row['spotify_album_id'])):
+            #     continue
+            
+            track_id = row['spotify_track_id']
+            album_id = row['spotify_album_id']
+            # artist_id = row['spotify_track_id']
 
             # if has the same content as last row, don't redo search 
-            if (album_uri != last_track_uri): # no redundant call if same as previous song and performer
-                
-                try:
-                    # track_audio_features = sp.audio_features(track_uri)
-#                    track_audio_analysis = sp.audio_analysis(track_uri)
-                    # track_id = track_uri.split('spotify:track:')[1]
-                    album_uri = album_uri.split('spotify:track:')[1]
-                    d = sp.album(album_uri)
-                except spotipy.exceptions.SpotifyException as e:
-                    df.to_csv(FILE_WRITE)
-                    print('ERROR at '+str(i))
+            if (track_id != last_track_id): # no redundant call if same as previous song and performer
+                sp_track = sp.track(track_id) if len(track_fields>0) else None
+                sp_album = sp.album(album_id) if len(album_fields>0) else None
+                sp_audio = sp.audio_features(track_id) if len(audio_fields>0) else None
 
             # if there are search results, iterate through them 
 
-            if (d):
-
+            if (sp_track):
                 df.loc[i, 'spotify_track_id'] = track_id
                 df.loc[i, 'spotify_track_embed'] = """<iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/"""+track_id+"""?utm_source=generator&theme=0" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>"""
                 df.loc[i, 'spotify_track_url'] = d.get('external_urls', {}).get('spotify', '')
@@ -262,408 +157,74 @@ def add_extra_spotify_fields2():
                 # df.loc[i, 'spotify_track_ean'] = d.get('external_ids', {}).get('ean', '') # removed because never present 
                 # df.loc[i, 'spotify_track_upc'] = d.get('external_ids', {}).get('upc', '')# removed because never present 
 
-                album = d.get('album')
-                if album:
-                    df.loc[i, 'spotify_album_type'] = album.get('album_type', '')
-                    df.loc[i, 'spotify_album_url'] = album.get('external_urls', {}).get('spotify', '')
-                    # df.loc[i, 'spotify_album_isrc'] = album.get('external_ids', {}).get('isrc', '') # removed because never present 
-                    # df.loc[i, 'spotify_album_ean'] = album.get('external_ids', {}).get('ean', '') # removed because never present 
-                    df.loc[i, 'spotify_album_upc'] = album.get('external_ids', {}).get('upc', '')
-                    df.loc[i, 'spotify_album_genres'] = str(album.get('genres', []))
-                    df.loc[i, 'spotify_album_label'] = album.get('label', '')
-                    df.loc[i, 'spotify_album_popularity'] = album.get('popularity', '')
+            if (sp_audio):
+                for field in audio_fields: 
+                    df['spotify_track_'+field] = sp_audio.get(field)
 
-                for artist_i in range(len(d.get('artists'))):
-                    artist = d.get('artists')[artist_i]
-                    ai = str(artist_i+1)
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_url'] = artist.get('external_urls', {}).get('spotify', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_followers'] = artist.get('followers', {}).get('total', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_genres'] = str(artist.get('genres', []))
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_id'] = artist.get('id', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_image_url'] = artist.get('images', [])[0].get('url', '') if artist.get('images') else ''
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_name'] = artist.get('name', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_popularity'] = artist.get('popularity', '')
-
-
-
-                # df.loc[i, 'spotify_track_liveness'] = d.get('liveness')
-                # df.loc[i, 'spotify_track_loudness'] = d.get('loudness')
-                # df.loc[i, 'spotify_track_mode'] = d.get('mode')
-                # df.loc[i, 'spotify_track_speechiness'] = d.get('speechiness')
-                # df.loc[i, 'spotify_track_tempo'] = d.get('tempo')
-                # df.loc[i, 'spotify_track_time_signature'] = d.get('time_signature')
-                # df.loc[i, 'spotify_track_valence'] = d.get('valence')          
-
-
-            # if (track_audio_features):
-
-            #     d = track_audio_features[0]
-
-            #     df.loc[i, 'spotify_track_acousticness'] = d.get('acousticness')
-            #     df.loc[i, 'spotify_track_danceability'] = d.get('danceability')
-            #     df.loc[i, 'spotify_track_energy'] = d.get('energy')
-            #     df.loc[i, 'spotify_track_instrumentalness'] = d.get('instrumentalness')
-            #     df.loc[i, 'spotify_track_key'] = d.get('key')
-            #     df.loc[i, 'spotify_track_liveness'] = d.get('liveness')
-            #     df.loc[i, 'spotify_track_loudness'] = d.get('loudness')
-            #     df.loc[i, 'spotify_track_mode'] = d.get('mode')
-            #     df.loc[i, 'spotify_track_speechiness'] = d.get('speechiness')
-            #     df.loc[i, 'spotify_track_tempo'] = d.get('tempo')
-            #     df.loc[i, 'spotify_track_time_signature'] = d.get('time_signature')
-            #     df.loc[i, 'spotify_track_valence'] = d.get('valence')          
-            
-#            if (track_audio_analysis):
-#
-#                df.loc[i, 'spotify_track_acousticness'] = track_audio_analysis.get('acousticness')
-#                df.loc[i, 'spotify_track_danceability'] = track_audio_analysis.get('danceability')
-#                df.loc[i, 'spotify_track_energy'] = track_audio_analysis.get('energy')
-#                df.loc[i, 'spotify_track_instrumentalness'] = track_audio_analysis.get('instrumentalness')
-#                df.loc[i, 'spotify_track_key'] = track_audio_analysis.get('key')
-#                df.loc[i, 'spotify_track_liveness'] = track_audio_analysis.get('liveness')
-#                df.loc[i, 'spotify_track_loudness'] = track_audio_analysis.get('loudness')
-#                df.loc[i, 'spotify_track_mode'] = track_audio_analysis.get('mode')
-#                df.loc[i, 'spotify_track_speechiness'] = track_audio_analysis.get('speechiness')
-#                df.loc[i, 'spotify_track_tempo'] = track_audio_analysis.get('tempo')
-#                df.loc[i, 'spotify_track_time_signature'] = track_audio_analysis.get('time_signature')
-#                df.loc[i, 'spotify_track_valence'] = track_audio_analysis.get('valence')
-            
-        
-
-            last_track_uri = album_uri
-
-    except KeyboardInterrupt as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(i)
-
-    except ValueError as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(i)
-
-    df.to_csv(FILE_WRITE)
-
-def add_track_spotify_fields():
-
-    df = pandas.read_csv(FILE_READ)
-
-    last_track_uri = ''
-    d = None
-
-    try:
-
-        # for each entry in the billboard top 100 
-        for i, row in df.iterrows():
-        
-            if (i<13113):
-                continue
-            
-            if (i % 1000 == 0):
-                print("at index: "+str(i))
-
-            # if there is no spotify track info, continue to next row 
-            if (pandas.isna(row['spotify_track_uri'])):
-                continue
-
-            track_uri = row['spotify_track_uri']
-
-            # if has the same content as last row, don't redo search 
-            if (track_uri != last_track_uri): # no redundant call if same as previous song and performer
-                
-                try:
-                    track_id = track_uri.split('spotify:track:')[1]
-                    d = sp.track(track_id)
-                except spotipy.exceptions.SpotifyException as e:
-                    df.to_csv(FILE_WRITE)
-                    print('ERROR at '+str(i))
-
-            # if there are search results, iterate through them 
-
-            if (d):
-
-                df.loc[i, 'spotify_track_id'] = track_id
-                # df.loc[i, 'spotify_track_embed'] = """<iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/"""+track_id+"""?utm_source=generator&theme=0" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>"""
-                # df.loc[i, 'spotify_track_url'] = d.get('external_urls', {}).get('spotify', '')
-                # df.loc[i, 'spotify_track_isrc'] = d.get('external_ids', {}).get('isrc', '')
-                # df.loc[i, 'spotify_track_ean'] = d.get('external_ids', {}).get('ean', '')
-                # df.loc[i, 'spotify_track_upc'] = d.get('external_ids', {}).get('upc', '')
-
-                # album = d.get('album')
-                # if album:
-                #     df.loc[i, 'spotify_album_type'] = album.get('album_type', '')
-                #     df.loc[i, 'spotify_album_url'] = album.get('external_urls', {}).get('spotify', '')
-                #     df.loc[i, 'spotify_album_isrc'] = album.get('external_ids', {}).get('isrc', '')
-                #     df.loc[i, 'spotify_album_ean'] = album.get('external_ids', {}).get('ean', '')
-                #     df.loc[i, 'spotify_album_upc'] = album.get('external_ids', {}).get('upc', '')
-                #     df.loc[i, 'spotify_album_genres'] = str(album.get('genres', []))
-                #     df.loc[i, 'spotify_album_label'] = album.get('label', '')
-                #     df.loc[i, 'spotify_album_popularity'] = album.get('popularity', '')
-
-                for artist_i in range(len(d.get('artists'))):
-                    artist = d.get('artists')[artist_i]
-                    ai = str(artist_i+1)
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_url'] = artist.get('external_urls', {}).get('spotify', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_followers'] = artist.get('followers', {}).get('total', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_genres'] = str(artist.get('genres', []))
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_id'] = artist.get('id', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_image_url'] = artist.get('images', [])[0].get('url', '') if artist.get('images') else ''
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_name'] = artist.get('name', '')
-                    df.loc[i, 'spotify_track_artist'+(ai)+'_popularity'] = artist.get('popularity', '')
-
-            last_track_uri = track_uri
-
-    except KeyboardInterrupt as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(i)
-
-    except ValueError as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(i)
-
-    df.to_csv(FILE_WRITE)
-
-
-
-def add_artists_spotify_fields():
-
-    df = pandas.read_csv(FILE_READ)
-
-    # last_spotify_track_artist1_id = '' 
-    # last_spotify_track_artist2_id = '' 
-    # last_spotify_track_artist3_id = ''
-    # last_spotify_track_artist4_id = ''
-    # last_spotify_track_artist5_id = ''
-    # last_spotify_track_artist6_id = ''
-    # d = None
-
-    #     billboard['spotify_album_name'] = ''
-    # billboard['spotify_album_release_date'] = ''
-    # billboard['spotify_album_total_tracks'] = ''
-    # billboard['spotify_album_image'] = ''
-    # billboard['spotify_album_uri'] = ''
-    # billboard['spotify_track_name'] = ''
-    # billboard['spotify_track_popularity'] = ''
-    # billboard['spotify_track_duration_ms'] = ''
-    # billboard['spotify_track_explicit'] = ''
-    # billboard['spotify_track_number'] = ''
-    # billboard['spotify_track_uri'] = ''
-
-    all_artists = {}
-
-    try:
-
-        # for each entry in the billboard top 100 
-        for i, row in df.iterrows():
-        
-            # if (i>100):
-            #     break
-            
-            if (i % 1000 == 0):
-                print("at index: "+str(i))
-
-            # if there is no spotify track info, continue to next row 
-            if (pandas.isna(row['spotify_track_uri'])):
-                continue
+            if (sp_album):
+                df.loc[i, 'spotify_album_id'] = album_id
+                df.loc[i, 'spotify_album_type'] = sp_album.get('album_type', '')
+                df.loc[i, 'spotify_album_url'] = sp_album.get('external_urls', {}).get('spotify', '')
+                # df.loc[i, 'spotify_album_isrc'] = sp_album.get('external_ids', {}).get('isrc', '')
+                # df.loc[i, 'spotify_album_ean'] = sp_album.get('external_ids', {}).get('ean', '')
+                df.loc[i, 'spotify_album_upc'] = sp_album.get('external_ids', {}).get('upc', '')
+                # df.loc[i, 'spotify_album_genres'] = str(sp_album.get('genres', [])) removed because never present
+                df.loc[i, 'spotify_album_label'] = sp_album.get('label', '')
+                df.loc[i, 'spotify_album_popularity'] = sp_album.get('popularity', '')
 
             
-            for artist_index in range(1, 7):
+            if len(artist_fields>0):
 
-                if (pandas.isna(row['spotify_track_artist'+str(artist_index)+'_id'])):
-                    continue
-                
-                artist_id = str(row['spotify_track_artist'+str(artist_index)+'_id'])
-                # print(artist_id)
-                if all_artists.get(artist_id):
-                    d = all_artists.get(artist_id) 
-                else:
-                    d = sp.artist(artist_id)
-                    all_artists[artist_id] = d                    
-                
-                # print(d)
-                
-                if (d):
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_url'] = d.get('external_urls', {}).get('spotify', '')
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_followers'] = d.get('followers', {}).get('total', '')
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_genres'] = str(d.get('genres', []))
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_id'] = d.get('id', '')
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_image_url'] = d.get('images', [])[0].get('url', '') if d.get('images') else ''
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_name'] = d.get('name', '')
-                    df.loc[i, 'spotify_track_artist'+str(artist_index)+'_popularity'] = d.get('popularity', '')
+                for artist_index in range(1, 7):
 
-                # every_artist[row['spotify_track_artist1_id']]) if (pandas.notna(row['spotify_track_artist1_id'])) else None
-                # every_artist.append(row['spotify_track_artist2_id']) if (pandas.notna(row['spotify_track_artist2_id'])) else None
-                # every_artist.append(row['spotify_track_artist3_id']) if (pandas.notna(row['spotify_track_artist3_id'])) else None
-                # every_artist.append(row['spotify_track_artist4_id']) if (pandas.notna(row['spotify_track_artist4_id'])) else None
-                # every_artist.append(row['spotify_track_artist5_id']) if (pandas.notna(row['spotify_track_artist5_id'])) else None
-                # every_artist.append(row['spotify_track_artist6_id']) if (pandas.notna(row['spotify_track_artist6_id'])) else None
-
-
-            # spotify_track_artist1_id = row['spotify_track_artist1_id']
-            # spotify_track_artist2_id = row['spotify_track_artist2_id']
-            # spotify_track_artist3_id = row['spotify_track_artist3_id']
-            # spotify_track_artist4_id = row['spotify_track_artist4_id']
-            # spotify_track_artist5_id = row['spotify_track_artist5_id']
-            # spotify_track_artist6_id = row['spotify_track_artist6_id']
-
-            # artists = []
-            # artists.append(row['spotify_track_artist1_id']) if (pandas.notna(row['spotify_track_artist1_id'])) else None
-            # artists.append(row['spotify_track_artist2_id']) if (pandas.notna(row['spotify_track_artist2_id'])) else None
-            # artists.append(row['spotify_track_artist3_id']) if (pandas.notna(row['spotify_track_artist3_id'])) else None
-            # artists.append(row['spotify_track_artist4_id']) if (pandas.notna(row['spotify_track_artist4_id'])) else None
-            # artists.append(row['spotify_track_artist5_id']) if (pandas.notna(row['spotify_track_artist5_id'])) else None
-            # artists.append(row['spotify_track_artist6_id']) if (pandas.notna(row['spotify_track_artist6_id'])) else None
-
-            # if has the same content as last row, don't redo search 
-            # if (artists != last_artists): 
-
-
-            # if (spotify_track_artist1_id != last_spotify_track_artist1_id 
-            #     and spotify_track_artist2_id != last_spotify_track_artist2_id 
-            #     and spotify_track_artist3_id != last_spotify_track_artist3_id
-            #     and spotify_track_artist4_id != last_spotify_track_artist4_id
-            #     and spotify_track_artist5_id != last_spotify_track_artist5_id
-            #     and spotify_track_artist6_id != last_spotify_track_artist6_id): # no redundant call if same as previous song and performer
-                
-                # try:
-                    # if spotify_track_artist1_id:
-                        # note, getting error when try to call artists[list of multiple artists]
-                    # d1 = sp.artist(spotify_track_artist1_id) if not (pandas.isna(row['spotify_track_artist1_id'])) else None
-                    # d2 = sp.artist(spotify_track_artist2_id) if not (pandas.isna(row['spotify_track_artist2_id'])) else None
-                    # d3 = sp.artist(spotify_track_artist3_id) if not (pandas.isna(row['spotify_track_artist3_id'])) else None
-                    # d4 = sp.artist(spotify_track_artist4_id) if not (pandas.isna(row['spotify_track_artist4_id'])) else None
-                    # d5 = sp.artist(spotify_track_artist5_id) if not (pandas.isna(row['spotify_track_artist5_id'])) else None
-                    # d6 = sp.artist(spotify_track_artist6_id) if not (pandas.isna(row['spotify_track_artist6_id'])) else None
-                    # artists = []
-                    # artists.append(spotify_track_artist1_id) if (pandas.notna(row['spotify_track_artist1_id'])) else None
-                    # artists.append(spotify_track_artist2_id) if (pandas.notna(row['spotify_track_artist2_id'])) else None
-                    # artists.append(spotify_track_artist3_id) if (pandas.notna(row['spotify_track_artist3_id'])) else None
-                    # artists.append(spotify_track_artist4_id) if (pandas.notna(row['spotify_track_artist4_id'])) else None
-                    # artists.append(spotify_track_artist5_id) if (pandas.notna(row['spotify_track_artist5_id'])) else None
-                    # artists.append(spotify_track_artist6_id) if (pandas.notna(row['spotify_track_artist6_id'])) else None
+                    if (pandas.isna(row['spotify_track_artist'+str(artist_index)+'_id'])):
+                        continue
                     
-                    # artists_dicts = sp.artists(artists)
-                #     # artists_dicts = sp.artists([spotify_track_artist1_id, spotify_track_artist2_id, spotify_track_artist3_id, spotify_track_artist4_id, spotify_track_artist5_id, spotify_track_artist6_id])
-                # except spotipy.exceptions.SpotifyException as e:
-                #     df.to_csv(FILE_WRITE)
-                #     print('ERROR at '+str(i))
+                    artist_id = str(row['spotify_track_artist'+str(artist_index)+'_id'])
 
-            # if there are search results, iterate through them 
+                    if all_artists.get(artist_id):
+                        sp_artist = all_artists.get(artist_id) 
+                    else:
+                        sp_artist = sp.artist(artist_id) 
+                        all_artists[artist_id] = d                    
+                    
+                    if (sp_artist):
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_url'] = sp_artist.get('external_urls', {}).get('spotify', '')
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_followers'] = sp_artist.get('followers', {}).get('total', '')
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_genres'] = str(sp_artist.get('genres', []))
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_id'] = sp_artist.get('id', '')
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_image_url'] = sp_artist.get('images', [])[0].get('url', '') if sp_artist.get('images') else ''
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_name'] = sp_artist.get('name', '')
+                        df.loc[i, 'spotify_track_artist'+str(artist_index)+'_popularity'] = sp_artist.get('popularity', '')
 
-            # for d in [d1, d2, d3, d4, d5, d5, d6]:
-            #     if (d):
-            #         df.loc[i, 'spotify_track_artist1_url'] = d.get('external_urls', {}).get('spotify', '')
-            #         df.loc[i, 'spotify_track_artist1_followers'] = d.get('followers', {}).get('total', '')
-            #         df.loc[i, 'spotify_track_artist1_genres'] = str(d.get('genres', []))
-            #         df.loc[i, 'spotify_track_artist1_id'] = d.get('id', '')
-            #         df.loc[i, 'spotify_track_artist1_image_url'] = d.get('images', [])[0].get('url', '') if d.get('images') else ''
-            #         df.loc[i, 'spotify_track_artist1_name'] = d.get('name', '')
-            #         df.loc[i, 'spotify_track_artist1_popularity'] = d.get('popularity', '')
-            # for d in artists_dicts:
-            #     if (d):
-            #         df.loc[i, 'spotify_track_artist1_url'] = d.get('external_urls', {}).get('spotify', '')
-            #         df.loc[i, 'spotify_track_artist1_followers'] = d.get('followers', {}).get('total', '')
-            #         df.loc[i, 'spotify_track_artist1_genres'] = str(d.get('genres', []))
-            #         df.loc[i, 'spotify_track_artist1_id'] = d.get('id', '')
-            #         df.loc[i, 'spotify_track_artist1_image_url'] = d.get('images', [])[0].get('url', '') if d.get('images') else ''
-            #         df.loc[i, 'spotify_track_artist1_name'] = d.get('name', '')
-            #         df.loc[i, 'spotify_track_artist1_popularity'] = d.get('popularity', '')
-    
+            last_track_id = track_id
 
-            # last_artists = artists
     except spotipy.exceptions.SpotifyException as e:
-        df.to_csv(FILE_WRITE)
+        df.to_csv(file_write)
         print('ERROR at '+str(i))
 
     except KeyboardInterrupt as e:
-        df.to_csv(FILE_WRITE)
+        df.to_csv(file_write)
         print('ABORTED at')
         print(i)
 
     except ValueError as e:
-        df.to_csv(FILE_WRITE)
+        df.to_csv(file_write)
         print('ABORTED at')
         print(i)
 
-    df.to_csv(FILE_WRITE)
+    df.to_csv(file_write)
 
-def add_album_spotify_fields():
 
-    df = pandas.read_csv(FILE_READ)
-
-    last_spotify_album_uri = '' 
-    album = None
-
-    # df['spotify_album_id'] = ''
-
-    try:
-
-        # for each entry in the billboard top 100 
-        for i, row in df.iterrows():
-        
-            # if (i>58):
-            #     break
-            
-            if (i % 500 == 0):
-                print("at index: "+str(i))
-
-            # if there is no spotify track info, continue to next row 
-            if (pandas.isna(row['spotify_album_uri'])):
-                continue
-            # if there is album id already filled in, 
-            # if (pandas.notna(row['spotify_album_id'])):
-            #     continue
-            
-    
-            spotify_album_uri = row['spotify_album_uri']
-
-            # if has the same content as last row, don't redo search 
-            if (spotify_album_uri != last_spotify_album_uri): # no redundant call if same as previous song and performer
-                try:
-                    spotify_album_id = spotify_album_uri.split('spotify:album:')[1]
-                    album = sp.album(spotify_album_id) 
-                    # print(album)
-                except spotipy.exceptions.SpotifyException as e:
-                    df.to_csv(FILE_WRITE)
-                    print('ERROR at '+str(i))
-
-            # if there are search results, iterate through them 
-            if (album):
-                df.loc[i, 'spotify_album_id'] = spotify_album_id
-                df.loc[i, 'spotify_album_type'] = album.get('album_type', '')
-                df.loc[i, 'spotify_album_url'] = album.get('external_urls', {}).get('spotify', '')
-                df.loc[i, 'spotify_album_isrc'] = album.get('external_ids', {}).get('isrc', '')
-                df.loc[i, 'spotify_album_ean'] = album.get('external_ids', {}).get('ean', '')
-                df.loc[i, 'spotify_album_upc'] = album.get('external_ids', {}).get('upc', '')
-                # df.loc[i, 'spotify_album_genres'] = str(album.get('genres', [])) removed because never present
-                df.loc[i, 'spotify_album_label'] = album.get('label', '')
-                df.loc[i, 'spotify_album_popularity'] = album.get('popularity', '')
-    
-            last_spotify_album_uri = spotify_album_uri 
-
-    except KeyboardInterrupt as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(i)
-
-    except ValueError as e:
-        df.to_csv(FILE_WRITE)
-        print('ABORTED at')
-        print(i)
-
-    df.to_csv(FILE_WRITE)                                                                                                                                            
 """
  
 """
-def add_spotify_api_to_billboard_data():
-
-    
+def match_billboard_to_spotify_song(file_read, file_write):
 
     prompt = input("prompt if no automatic match found? (y/n) ")
 
     # df = pandas.read_csv('billboard_hot100_hiphop.csv')
-    df = pandas.read_csv(FILE_READ)
+    df = pandas.read_csv(file_read)
 
     last = ''
     d = None
@@ -740,7 +301,7 @@ def add_spotify_api_to_billboard_data():
                     my_i = str(input("\nwhich index should be chosen? (or n for none, a to abort, or url)"))
 
                 if (my_i == 'a'):
-                    df.to_csv(FILE_WRITE)
+                    df.to_csv(file_write)
                     print("aborting")
                     return
                     
@@ -765,7 +326,7 @@ def add_spotify_api_to_billboard_data():
                     print('filled '+str(my_i))
                 else:
                     print('ERROR, saving file')
-                    df.to_csv(FILE_WRITE)
+                    df.to_csv(file_write)
                     return
                 
                 print('\n\n\n')
@@ -774,19 +335,20 @@ def add_spotify_api_to_billboard_data():
             last = bb_song+bb_performer
 
     except KeyboardInterrupt as e:
-        df.to_csv(FILE_WRITE)
+        df.to_csv(file_write)
         print('ABORTED at')
         print(index)
 
     except ValueError as e:
-        df.to_csv(FILE_WRITE)
+        df.to_csv(file_write)
         print('ABORTED at')
         print(index)
 
-    df.to_csv(FILE_WRITE)
+    df.to_csv(file_write)
 
 
 """
+
 """
 def clean(dirty):
     return re.sub(r'[^a-zA-Z0-9]', '',(unidecode((dirty.replace("&","and").replace("#","number").replace("%", "percent").lower().strip()))))
@@ -814,8 +376,6 @@ def write(df, index, track_dict):
     return df
     
 
-
-
 """
 starting with csv of all billboard hot 100 songs, can do one or both of these functions:    
 
@@ -834,7 +394,6 @@ def billboard_filter_hiphop(make_file_ishiphop = False, make_file_billboardhipho
         billboard_is_hiphop['artist1_name'] = ''
         billboard_is_hiphop['artist2_name'] = ''
     
-
     artists = pandas.read_csv(FILE_HIPHOP_ARTISTS)
     artist_list = artists['hiphop_artist_name'].values.tolist()
 
